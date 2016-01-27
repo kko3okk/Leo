@@ -1,0 +1,84 @@
+package com.tynesys.mfg.translator.mmmp11.util;
+
+import java.math.BigDecimal;
+import java.text.SimpleDateFormat;
+
+import org.apache.poi.hssf.usermodel.HSSFDateUtil;
+import org.apache.poi.ss.usermodel.Cell;
+
+public class CheckCellTypeUtil {
+
+	private CheckCellTypeUtil() {
+	}
+	
+	public static String getValue(Cell cell) {
+		
+		String cellVal = null;
+		
+		if(cell != null){
+			cellVal = getValue(cell, cell.getCellType());
+		}
+		
+		if (cellVal != null && cellVal.endsWith(".0")) {
+			cellVal = cellVal.substring(0, cellVal.length() - 2);
+		}
+		
+		return cellVal;
+		
+	}
+
+	public static String getValue(Cell cell, int cellType) {
+
+		String cellVal = null;
+
+		switch (cellType) {
+		case Cell.CELL_TYPE_NUMERIC: // 數字日期型態
+			if (HSSFDateUtil.isCellDateFormatted(cell)) { // 日期格式
+				cellVal = new SimpleDateFormat("yyyyMMddHHmmss").format(cell.getDateCellValue());
+			} else {
+				cellVal = String.valueOf(cell.getNumericCellValue());
+				if (cellVal != null) {
+					BigDecimal bd = new BigDecimal(cellVal);
+					cellVal = bd.toPlainString(); // 數字格式,避免出現科學符號
+				}
+			}
+			break;
+
+		case Cell.CELL_TYPE_STRING: // 字串型態
+			cellVal = cell.getStringCellValue();
+			break;
+
+		case Cell.CELL_TYPE_FORMULA: // 公式型態
+
+			cellVal = getValue(cell, cell.getCachedFormulaResultType());
+
+			if (cellVal != null) {
+
+				if ("".equals(cellVal) || "\"\"".equals(cellVal)) {
+					cellVal = null;
+				} else if (cellVal.startsWith("\"")) {
+					cellVal = cellVal.replace("\"", "");
+				}
+
+				try {
+					BigDecimal bd = new BigDecimal(cellVal + "");
+					cellVal = bd.toPlainString(); // 數字格式,避免出現科學符號
+				} catch (Exception e) {
+				}
+			}
+
+			break;
+
+		case Cell.CELL_TYPE_BOOLEAN: // 布林型態
+			cellVal = String.valueOf(cell.getBooleanCellValue());
+			break;
+
+		case Cell.CELL_TYPE_BLANK: // 空字串
+		default: // Error // others
+			cellVal = null;
+			break;
+		}
+		
+		return cellVal;
+	}
+}
